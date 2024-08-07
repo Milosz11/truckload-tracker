@@ -11,8 +11,9 @@ import kotlinx.coroutines.flow.asStateFlow
 class TruckViewModel: ViewModel() {
     private val _uiState: MutableStateFlow<TruckUiState> = MutableStateFlow(
         TruckUiState(
-            activeTruckLoadList = DataSource.truckLoadList.toMutableList(),
-            archivedTruckLoad = DataSource.truckLoadList.toMutableList()
+            // Loading dummy data for testing
+            activeTruckLoadList = DataSource.truckLoadList.toMutableList().subList(0, 1),
+            archivedTruckLoadList = DataSource.truckLoadList.toMutableList()
         )
     )
     val uiState: StateFlow<TruckUiState> = _uiState.asStateFlow()

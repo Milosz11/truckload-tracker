@@ -2,6 +2,7 @@ package com.example.truckloadtracker.ui
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,8 +11,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -24,38 +27,86 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.example.truckloadtracker.R
 import com.example.truckloadtracker.controller.TruckViewModel
+import com.example.truckloadtracker.model.TruckLoad
 import com.example.truckloadtracker.ui.theme.TruckloadTrackerTheme
+
+enum class TruckloadScreen(@StringRes val titleId: Int) {
+    CurrentLoads(titleId = R.string.current_loads_screen_title),
+    ArchivedLoads(titleId = R.string.archived_loads_screen_title)
+}
 
 @Composable
 fun TruckloadApp(
-    viewModel: TruckViewModel = viewModel()
+    viewModel: TruckViewModel = viewModel(),
+    navController: NavHostController = rememberNavController()
 ) {
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentScreen = TruckloadScreen.valueOf(
+        backStackEntry?.destination?.route ?: TruckloadScreen.CurrentLoads.name
+    )
+
     Scaffold(
         topBar = {
-            TruckloadTopBar(titleId = R.string.home_screen_title)
+            TruckloadTopBar(currentScreen = currentScreen)
         },
         bottomBar = {
-            TruckloadBottomBar()
+            TruckloadBottomBar(
+                currentScreen = currentScreen,
+                onCurrentButtonClick = { navController.navigate(TruckloadScreen.CurrentLoads.name) },
+                onHistoryButtonClick = { navController.navigate(TruckloadScreen.ArchivedLoads.name) }
+            )
         }
     ) { paddingValues ->
         val uiState by viewModel.uiState.collectAsState()
 
-        Column {
-            Spacer(modifier = Modifier.height(dimensionResource(R.dimen.padding_small)))
-            // List of loads
-            LazyColumn(
-                contentPadding = paddingValues,
-                modifier = Modifier.padding(horizontal = dimensionResource(R.dimen.padding_small))
-            ) {
-                items(uiState.activeTruckLoadList) { load ->
-                    LoadCard(
-                        load = load,
-                        modifier = Modifier
-                            .padding(bottom = dimensionResource(R.dimen.padding_small))
-                    )
-                }
+        NavHost(
+            navController = navController,
+            startDestination = TruckloadScreen.CurrentLoads.name
+        ) {
+            // Home screen - active loads
+            composable(TruckloadScreen.CurrentLoads.name) {
+                LoadListLayout(
+                    listToDisplay = uiState.activeTruckLoadList.toList(),
+                    paddingValues = paddingValues
+                )
+            }
+            // Archived loads
+            composable(TruckloadScreen.ArchivedLoads.name) {
+                LoadListLayout(
+                    listToDisplay = uiState.archivedTruckLoadList.toList(),
+                    paddingValues = paddingValues
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun LoadListLayout(
+    listToDisplay: List<TruckLoad>,
+    paddingValues: PaddingValues,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Spacer(modifier = Modifier.height(dimensionResource(R.dimen.padding_small)))
+        // List of loads
+        LazyColumn(
+            contentPadding = paddingValues,
+            modifier = Modifier.padding(horizontal = dimensionResource(R.dimen.padding_small))
+        ) {
+            items(listToDisplay) { load ->
+                LoadCard(
+                    load = load,
+                    modifier = Modifier
+                        .padding(bottom = dimensionResource(R.dimen.padding_small))
+                )
             }
         }
     }
@@ -64,19 +115,35 @@ fun TruckloadApp(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TruckloadTopBar(
-    @StringRes titleId: Int,
+    currentScreen: TruckloadScreen,
     modifier: Modifier = Modifier
 ) {
     CenterAlignedTopAppBar(
-        title = { Text(stringResource(titleId)) },
+        title = { Text(stringResource(currentScreen.titleId)) },
         modifier = modifier
     )
 }
 
 @Composable
 fun TruckloadBottomBar(
+    currentScreen: TruckloadScreen,
+    onCurrentButtonClick: () -> Unit,
+    onHistoryButtonClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val selectedButtonColors = ButtonColors(
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
+        disabledContainerColor = MaterialTheme.colorScheme.surface,
+        disabledContentColor = MaterialTheme.colorScheme.onSurface
+    )
+    val unselectedButtonColors = ButtonColors(
+        containerColor = MaterialTheme.colorScheme.secondary,
+        contentColor = MaterialTheme.colorScheme.onSecondary,
+        disabledContainerColor = MaterialTheme.colorScheme.surface,
+        disabledContentColor = MaterialTheme.colorScheme.onSurface
+    )
+
     BottomAppBar(
         modifier = modifier,
         actions = {
@@ -88,7 +155,12 @@ fun TruckloadBottomBar(
             ) {
                 // Current button
                 OutlinedButton(
-                    onClick = { /*TODO*/ },
+                    onClick = onCurrentButtonClick,
+                    colors = if (currentScreen == TruckloadScreen.CurrentLoads) {
+                        selectedButtonColors
+                    } else {
+                        unselectedButtonColors
+                    },
                     modifier = Modifier
                         .weight(1f)
                         .padding(horizontal = dimensionResource(R.dimen.padding_small))
@@ -97,7 +169,12 @@ fun TruckloadBottomBar(
                 }
                 // History button
                 OutlinedButton(
-                    onClick = { /*TODO*/ },
+                    onClick = onHistoryButtonClick,
+                    colors = if (currentScreen == TruckloadScreen.ArchivedLoads) {
+                        selectedButtonColors
+                    } else {
+                        unselectedButtonColors
+                    },
                     modifier = Modifier
                         .weight(1f)
                         .padding(horizontal = dimensionResource(R.dimen.padding_small))

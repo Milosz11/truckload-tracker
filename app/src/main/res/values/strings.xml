@@ -3,4 +3,6 @@
     <string name="home_screen_title">Truckloader</string>
     <string name="current_button_text">Current</string>
     <string name="history_button_text">History</string>
+    <string name="current_loads_screen_title">Active Loads</string>
+    <string name="archived_loads_screen_title">Past Loads</string>
 </resources>
