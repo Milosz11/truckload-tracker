@@ -5,4 +5,7 @@
     <string name="history_button_text">History</string>
     <string name="current_loads_screen_title">Active Loads</string>
     <string name="archived_loads_screen_title">Past Loads</string>
+    <string name="back">Back</string>
+    <string name="create_load_screen_title">Add a new load</string>
+    <string name="add_a_new_load">Add a new load</string>
 </resources>

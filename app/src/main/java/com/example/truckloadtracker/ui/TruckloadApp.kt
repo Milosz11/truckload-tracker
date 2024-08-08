@@ -10,13 +10,19 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -39,7 +45,8 @@ import com.example.truckloadtracker.ui.theme.TruckloadTrackerTheme
 
 enum class TruckloadScreen(@StringRes val titleId: Int) {
     CurrentLoads(titleId = R.string.current_loads_screen_title),
-    ArchivedLoads(titleId = R.string.archived_loads_screen_title)
+    ArchivedLoads(titleId = R.string.archived_loads_screen_title),
+    CreateALoad(titleId = R.string.create_load_screen_title)
 }
 
 @Composable
@@ -54,14 +61,35 @@ fun TruckloadApp(
 
     Scaffold(
         topBar = {
-            TruckloadTopBar(currentScreen = currentScreen)
+            TruckloadTopBar(
+                currentScreen = currentScreen,
+                canNavigateUp = currentScreen == TruckloadScreen.CreateALoad,
+                onNavigateUp = { navController.popBackStack() }
+            )
         },
         bottomBar = {
-            TruckloadBottomBar(
-                currentScreen = currentScreen,
-                onCurrentButtonClick = { navController.navigate(TruckloadScreen.CurrentLoads.name) },
-                onHistoryButtonClick = { navController.navigate(TruckloadScreen.ArchivedLoads.name) }
-            )
+            if (currentScreen == TruckloadScreen.CurrentLoads ||
+                    currentScreen == TruckloadScreen.ArchivedLoads) {
+                TruckloadBottomBar(
+                    currentScreen = currentScreen,
+                    onCurrentButtonClick = {
+                        navController.navigate(TruckloadScreen.CurrentLoads.name)
+                    },
+                    onHistoryButtonClick = {
+                        navController.navigate(TruckloadScreen.ArchivedLoads.name)
+                    }
+                )
+            }
+        },
+        floatingActionButton = {
+            if (currentScreen != TruckloadScreen.CreateALoad) {
+                SmallFloatingActionButton(onClick = { navController.navigate(TruckloadScreen.CreateALoad.name) }) {
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = stringResource(R.string.add_a_new_load)
+                    )
+                }
+            }
         }
     ) { paddingValues ->
         val uiState by viewModel.uiState.collectAsState()
@@ -83,6 +111,10 @@ fun TruckloadApp(
                     listToDisplay = uiState.archivedTruckLoadList.toList(),
                     paddingValues = paddingValues
                 )
+            }
+            // Create a new load
+            composable(TruckloadScreen.CreateALoad.name) {
+                /* TODO */
             }
         }
     }
@@ -116,11 +148,23 @@ fun LoadListLayout(
 @Composable
 fun TruckloadTopBar(
     currentScreen: TruckloadScreen,
+    canNavigateUp: Boolean,
+    onNavigateUp: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     CenterAlignedTopAppBar(
         title = { Text(stringResource(currentScreen.titleId)) },
-        modifier = modifier
+        modifier = modifier,
+        navigationIcon = {
+            if (canNavigateUp) {
+                IconButton(onClick = onNavigateUp) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.back)
+                    )
+                }
+            }
+        }
     )
 }
 
